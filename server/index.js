@@ -3,6 +3,10 @@ import express from 'express';
 import cors from 'cors';
 import { connect } from './utils/db.js';
 import { Lead } from './models/Lead.js';
+import { syncMetaLeads } from "./services/syncMeta.js";
+import { SyncLog } from "./models/SyncLog.js";
+import { syncGoogleLeads } from "./services/syncGoogle.js";
+
 
 const app = express();
 app.use(cors());
@@ -95,4 +99,104 @@ app.post('/api/dev/rebuild-contact-indexes', async (_req, res) => {
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
+});
+
+
+// --- Mock Meta API (simulated leads)
+app.get("/mock/meta/leads", (_req, res) => {
+  // Fake raw Meta-style payload
+  const leads = [
+    {
+      leadgen_id: "META_" + Date.now(),
+      field_data: [
+        { name: "full_name", values: ["Alice Meta"] },
+        { name: "email", values: ["alice.meta@example.com"] },
+        { name: "phone_number", values: ["+91-9000000001"] }
+      ],
+      ad_id: "ad_meta_123",
+      campaign_id: "cmp_meta_123",
+      form_id: "form_meta_123",
+      created_time: new Date().toISOString()
+    },
+    {
+      leadgen_id: "META_" + (Date.now() + 1),
+      field_data: [
+        { name: "full_name", values: ["Bob Meta"] },
+        { name: "email", values: ["bob.meta@example.com"] },
+        { name: "phone_number", values: ["+91-9000000002"] }
+      ],
+      ad_id: "ad_meta_456",
+      campaign_id: "cmp_meta_456",
+      form_id: "form_meta_456",
+      created_time: new Date().toISOString()
+    }
+  ];
+  res.json({ leads });
+});
+
+// --- Dev: list sync logs
+app.get("/api/logs", async (_req, res) => {
+  try {
+    const logs = await SyncLog.find().sort({ createdAt: -1 }).limit(50);
+    res.json(logs);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+
+// --- Trigger Meta sync
+// app.post("/api/sync/meta", async (req, res) => {
+//   const result = await syncMetaLeads("http://localhost:4000");
+//   res.json(result);
+// });
+
+
+
+
+app.post("/api/sync/all", async (_req, res) => {
+  const meta = await syncMetaLeads("http://localhost:4000");
+ const google = await syncGoogleLeads("http://localhost:4000");
+  res.json({ ok: true, meta, google });
+});
+
+
+
+// --- Mock Google API (simulated leads)
+app.get("/mock/google/leads", (_req, res) => {
+  const leads = [
+    {
+      resource_name: "customers/123/leadForms/1/leadFormSubmissionData/1",
+      lead_form_id: "form_google_123",
+      campaign: "cmp_google_123",
+      ad: "ad_google_123",
+      custom_lead_form_fields: [
+        { question_text: "Full Name", user_input: "Charlie Google" },
+        { question_text: "Email", user_input: "charlie.google@example.com" },
+        { question_text: "Phone", user_input: "+91-9000000003" }
+      ],
+      created_at: new Date().toISOString()
+    },
+    {
+      resource_name: "customers/123/leadForms/1/leadFormSubmissionData/2",
+      lead_form_id: "form_google_456",
+      campaign: "cmp_google_456",
+      ad: "ad_google_456",
+      custom_lead_form_fields: [
+        { question_text: "Full Name", user_input: "Diana Google" },
+        { question_text: "Email", user_input: "diana.google@example.com" },
+        { question_text: "Phone", user_input: "+91-9000000004" }
+      ],
+      created_at: new Date().toISOString()
+    }
+  ];
+  res.json({ leads });
+});
+
+
+
+// --- Trigger Google sync
+app.post("/api/sync/google", async (_req, res) => {
+  const result = await syncGoogleLeads("http://localhost:4000");
+  res.json(result);
 });
