@@ -133,6 +133,22 @@ app.post("/api/sync/all", async (req, res) => {
   res.json({ ok: true, meta, google });
 });
 
+// -------- Root Landing Page --------
+app.get("/", (_req, res) => {
+  res.type("html").send(`
+    <h2>Lead Sync API</h2>
+    <p>Status check: <a href="/api/health">/api/health</a></p>
+    <p>Available endpoints:</p>
+    <ul>
+      <li>GET <code>/api/leads</code></li>
+      <li>GET <code>/api/logs</code></li>
+      <li>POST <code>/api/sync/all</code></li>
+      <li>POST <code>/api/sync/meta</code></li>
+      <li>POST <code>/api/sync/google</code></li>
+    </ul>
+  `);
+});
+
 // -------- Start
 const PORT = process.env.PORT || 4000;
 connect().then(() => {
