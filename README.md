@@ -86,4 +86,9 @@ Try it out:
 ### Prerequisites
 - Node.js (v20 LTS recommended; pinned via `.nvmrc`)  
 - MongoDB Atlas account (free tier is enough)  
-- Git + npm  
+- Git + npm
+
+### 1. Clone Repo
+```bash
+git clone <https://github.com/tanyamediratta/Lead-Sync-Module)>
+cd crm-lead-sync
