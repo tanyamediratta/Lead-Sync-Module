@@ -48,32 +48,31 @@ app.get("/api/logs", async (_req, res) => {
 
 // -------- Mock Meta (simulated external source)
 app.get("/mock/meta/leads", (_req, res) => {
-  const ts = Date.now(); // unique timestamp
   const leads = [
     {
-      leadgen_id: "META_" + ts,
+      leadgen_id: "META_" + Date.now(),
       field_data: [
         { name: "full_name", values: ["Alice Meta"] },
-        { name: "email", values: [`alice.meta+${ts}@example.com`] },
-        { name: "phone_number", values: [`+91-90000${ts % 10000}`] }
+        { name: "email", values: ["alice.meta@example.com"] },
+        { name: "phone_number", values: ["+91-9000000001"] },
       ],
       ad_id: "ad_meta_123",
       campaign_id: "cmp_meta_123",
       form_id: "form_meta_123",
-      created_time: new Date().toISOString()
+      created_time: new Date().toISOString(),
     },
     {
-      leadgen_id: "META_" + (ts + 1),
+      leadgen_id: "META_" + (Date.now() + 1),
       field_data: [
         { name: "full_name", values: ["Bob Meta"] },
-        { name: "email", values: [`bob.meta+${ts}@example.com`] },
-        { name: "phone_number", values: [`+91-90001${ts % 10000}`] }
+        { name: "email", values: ["bob.meta@example.com"] },
+        { name: "phone_number", values: ["+91-9000000002"] },
       ],
       ad_id: "ad_meta_456",
       campaign_id: "cmp_meta_456",
       form_id: "form_meta_456",
-      created_time: new Date().toISOString()
-    }
+      created_time: new Date().toISOString(),
+    },
   ];
   res.json({ leads });
 });
@@ -81,32 +80,31 @@ app.get("/mock/meta/leads", (_req, res) => {
 
 // -------- Mock Google (simulated external source)
 app.get("/mock/google/leads", (_req, res) => {
-  const ts = Date.now();
   const leads = [
     {
-      resource_name: `customers/123/leadForms/1/leadFormSubmissionData/${ts}`,
+      resource_name: "customers/123/leadForms/1/leadFormSubmissionData/1",
       lead_form_id: "form_google_123",
       campaign: "cmp_google_123",
       ad: "ad_google_123",
       custom_lead_form_fields: [
         { question_text: "Full Name", user_input: "Charlie Google" },
-        { question_text: "Email", user_input: `charlie.google+${ts}@example.com` },
-        { question_text: "Phone", user_input: `+91-90002${ts % 10000}` }
+        { question_text: "Email", user_input: "charlie.google@example.com" },
+        { question_text: "Phone", user_input: "+91-9000000003" },
       ],
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     },
     {
-      resource_name: `customers/123/leadForms/1/leadFormSubmissionData/${ts + 1}`,
+      resource_name: "customers/123/leadForms/1/leadFormSubmissionData/2",
       lead_form_id: "form_google_456",
       campaign: "cmp_google_456",
       ad: "ad_google_456",
       custom_lead_form_fields: [
         { question_text: "Full Name", user_input: "Diana Google" },
-        { question_text: "Email", user_input: `diana.google+${ts}@example.com` },
-        { question_text: "Phone", user_input: `+91-90003${ts % 10000}` }
+        { question_text: "Email", user_input: "diana.google@example.com" },
+        { question_text: "Phone", user_input: "+91-9000000004" },
       ],
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ];
   res.json({ leads });
 });
