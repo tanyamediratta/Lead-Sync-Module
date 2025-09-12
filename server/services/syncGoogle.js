@@ -1,9 +1,4 @@
-// services/syncGoogle.js
 import { prisma } from "../utils/prisma.js";
-
-// If you're on Node < 18, uncomment next 2 lines and run: npm i node-fetch
-// import fetch from "node-fetch";
-// globalThis.fetch = globalThis.fetch || fetch;
 
 export async function syncGoogleLeads(baseUrl) {
   try {
@@ -11,8 +6,8 @@ export async function syncGoogleLeads(baseUrl) {
     if (!resp.ok) throw new Error(`GOOGLE fetch failed: ${resp.status}`);
     const data = await resp.json();
 
-    let imported = 0;
     const fetched = (data.leads || []).length;
+    let imported = 0;
 
     for (const raw of data.leads || []) {
       const get = (label) =>
@@ -25,22 +20,18 @@ export async function syncGoogleLeads(baseUrl) {
       await prisma.lead.upsert({
         where: { source_email: { source: "GOOGLE", email } },
         update: {
-          name,
-          phone,
+          name, phone,
           externalId: raw.resource_name,
-          // unify to the same keys used above
           meta: {
             lead_form_id: raw.lead_form_id,
-            campaign: raw.campaign,   // << unified key
+            campaign: raw.campaign,   // unified key
             ad: raw.ad,
           },
           updatedAt: new Date(),
         },
         create: {
           source: "GOOGLE",
-          email,
-          name,
-          phone,
+          email, name, phone,
           externalId: raw.resource_name,
           meta: {
             lead_form_id: raw.lead_form_id,

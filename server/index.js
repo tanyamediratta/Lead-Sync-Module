@@ -23,7 +23,6 @@ app.get("/api/leads", async (req, res) => {
     const page  = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "20", 10)));
     const platform = req.query.platform?.toString().toUpperCase();
-
     const where = platform ? { source: platform } : {};
 
     const [rows, total] = await Promise.all([
@@ -36,18 +35,14 @@ app.get("/api/leads", async (req, res) => {
       prisma.lead.count({ where }),
     ]);
 
-    // 🔁 Normalize to the frontend’s expected shape
+    // ⬇️ Map to UI shape: name, phone, email, platform, campaign, timestamp
     const items = rows.map((r) => ({
       name: r.name ?? "-",
       phone: r.phone ?? "-",
       email: r.email ?? "-",
-      platform: r.source, // UI expects `platform`
-      // prefer a single `campaign` key across META/GOOGLE
-      campaign:
-        (r.meta?.campaign) ||
-        (r.meta?.campaign_id) ||
-        "-",
-      timestamp: r.createdAt, // UI shows this as “Timestamp”
+      platform: r.source ?? "-",                            // UI column "Platform"
+      campaign: (r.meta?.campaign ?? r.meta?.campaign_id ?? "-"), // unified
+      timestamp: (r.createdAt ? new Date(r.createdAt).toISOString() : null),
     }));
 
     res.json({ items, total, page, limit });
@@ -57,6 +52,7 @@ app.get("/api/leads", async (req, res) => {
 });
 
 
+
 // -------- Logs (latest first)
 app.get("/api/logs", async (_req, res) => {
   try {
@@ -64,18 +60,21 @@ app.get("/api/logs", async (_req, res) => {
       orderBy: { createdAt: "desc" },
       take: 100,
     });
+
     const logs = rows.map((r) => ({
       source: r.source ?? "-",
       status: r.status ?? "-",
       fetched: r.details?.fetched ?? 0,
       imported: r.details?.imported ?? 0,
-      timestamp: r.createdAt,
+      timestamp: r.createdAt ? new Date(r.createdAt).toISOString() : null,
     }));
+
     res.json(logs);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
 
 
 // -------- Mock Meta (simulated external source)

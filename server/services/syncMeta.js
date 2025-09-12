@@ -1,9 +1,4 @@
-// services/syncMeta.js
 import { prisma } from "../utils/prisma.js";
-
-// If you're on Node < 18, uncomment next 2 lines and run: npm i node-fetch
-// import fetch from "node-fetch";
-// globalThis.fetch = globalThis.fetch || fetch;
 
 export async function syncMetaLeads(baseUrl) {
   try {
@@ -11,8 +6,8 @@ export async function syncMetaLeads(baseUrl) {
     if (!resp.ok) throw new Error(`META fetch failed: ${resp.status}`);
     const data = await resp.json();
 
-    let imported = 0;
     const fetched = (data.leads || []).length;
+    let imported = 0;
 
     for (const raw of data.leads || []) {
       const name  = raw.field_data.find(f => f.name === "full_name")?.values?.[0] || null;
@@ -22,22 +17,18 @@ export async function syncMetaLeads(baseUrl) {
       await prisma.lead.upsert({
         where: { source_email: { source: "META", email } },
         update: {
-          name,
-          phone,
+          name, phone,
           externalId: raw.leadgen_id,
-          // use unified meta keys the UI expects
           meta: {
             ad: raw.ad_id,
-            campaign: raw.campaign_id, // << unify to `campaign`
+            campaign: raw.campaign_id,   // unified key
             form_id: raw.form_id,
           },
           updatedAt: new Date(),
         },
         create: {
           source: "META",
-          email,
-          name,
-          phone,
+          email, name, phone,
           externalId: raw.leadgen_id,
           meta: {
             ad: raw.ad_id,
