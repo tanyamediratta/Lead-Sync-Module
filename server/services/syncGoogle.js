@@ -1,73 +1,63 @@
-import axios from "axios";
-import { Lead } from "../models/Lead.js";
-import { SyncLog } from "../models/SyncLog.js";
+// services/syncGoogle.js
+import { prisma } from "../utils/prisma.js";
 
-function normalizeGoogleLead(gLead) {
-  let name = null, email = null, phone = null;
-  (gLead.custom_lead_form_fields || []).forEach(f => {
-    const q = f.question_text.toLowerCase();
-    if (q.includes("name")) name = f.user_input;
-    if (q.includes("email")) email = f.user_input;
-    if (q.includes("phone")) phone = f.user_input;
-  });
-
-  return {
-    platform: "GOOGLE",
-    providerLeadId: gLead.resource_name,
-    name,
-    email,
-    phone,
-    campaignId: gLead.campaign,
-    campaignName: "Google Campaign",
-    adId: gLead.ad,
-    formId: gLead.lead_form_id,
-    raw: gLead
-  };
-}
+// If you're on Node < 18, uncomment next 2 lines and run: npm i node-fetch
+// import fetch from "node-fetch";
+// globalThis.fetch = globalThis.fetch || fetch;
 
 export async function syncGoogleLeads(baseUrl) {
-  const startedAt = new Date();
-  let fetched = 0, imported = 0;
-
   try {
-    const { data } = await axios.get(`${baseUrl}/mock/google/leads`);
-    const leads = data.leads || [];
-    fetched = leads.length;
+    const resp = await fetch(`${baseUrl}/mock/google/leads`);
+    if (!resp.ok) throw new Error(`GOOGLE fetch failed: ${resp.status}`);
+    const data = await resp.json();
 
-    for (const l of leads) {
-      const normalized = normalizeGoogleLead(l);
-      try {
-        await Lead.create(normalized);
-        imported++;
-      } catch (e) {
-        if (e.code === 11000) {
-          // duplicate → skip
-        } else {
-          throw e;
-        }
-      }
+    let count = 0;
+    for (const raw of data.leads || []) {
+      const get = (label) =>
+        raw.custom_lead_form_fields.find(f => f.question_text.toLowerCase().includes(label))?.user_input || null;
+
+      const name  = get("full");
+      const email = (get("email") || "").toLowerCase() || null;
+      const phone = get("phone");
+
+      await prisma.lead.upsert({
+        where: { source_email: { source: "GOOGLE", email } },
+        update: {
+          name,
+          phone,
+          externalId: raw.resource_name,
+          meta: {
+            lead_form_id: raw.lead_form_id,
+            campaign: raw.campaign,
+            ad: raw.ad,
+          },
+          updatedAt: new Date(),
+        },
+        create: {
+          source: "GOOGLE",
+          email,
+          name,
+          phone,
+          externalId: raw.resource_name,
+          meta: {
+            lead_form_id: raw.lead_form_id,
+            campaign: raw.campaign,
+            ad: raw.ad,
+          },
+        },
+      });
+      count++;
     }
 
-    await SyncLog.create({
-      platform: "GOOGLE",
-      fetchedCount: fetched,
-      importedCount: imported,
-      startedAt,
-      finishedAt: new Date(),
-      status: "SUCCESS"
+    await prisma.syncLog.create({
+      data: { source: "GOOGLE", status: "SUCCESS", details: { imported: count } },
     });
 
-    return { ok: true, fetched, imported };
+    return { ok: true, imported: count };
   } catch (err) {
-    await SyncLog.create({
-      platform: "GOOGLE",
-      fetchedCount: fetched,
-      importedCount: imported,
-      startedAt,
-      finishedAt: new Date(),
-      status: "ERROR",
-      notes: err.message
+    await prisma.syncLog.create({
+      data: { source: "GOOGLE", status: "ERROR", details: { message: String(err) } },
     });
-    return { ok: false, error: err.message };
+    return { ok: false, error: String(err) };
   }
 }

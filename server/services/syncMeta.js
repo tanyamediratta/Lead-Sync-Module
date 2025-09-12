@@ -1,70 +1,60 @@
-import axios from "axios";
-import { Lead } from "../models/Lead.js";
-import { SyncLog } from "../models/SyncLog.js";
+// services/syncMeta.js
+import { prisma } from "../utils/prisma.js";
 
-function normalizeMetaLead(metaLead) {
-  const map = {};
-  (metaLead.field_data || []).forEach(f => {
-    map[f.name] = f.values[0] || null;
-  });
-
-  return {
-    platform: "META",
-    providerLeadId: metaLead.leadgen_id,
-    name: map.full_name || null,
-    email: map.email || null,
-    phone: map.phone_number || null,
-    campaignId: metaLead.campaign_id,
-    campaignName: "Meta Campaign",
-    adId: metaLead.ad_id,
-    formId: metaLead.form_id,
-    raw: metaLead
-  };
-}
+// If you're on Node < 18, uncomment next 2 lines and run: npm i node-fetch
+// import fetch from "node-fetch";
+// globalThis.fetch = globalThis.fetch || fetch;
 
 export async function syncMetaLeads(baseUrl) {
-  const startedAt = new Date();
-  let fetched = 0, imported = 0;
-
   try {
-    const { data } = await axios.get(`${baseUrl}/mock/meta/leads`);
-    const leads = data.leads || [];
-    fetched = leads.length;
+    const resp = await fetch(`${baseUrl}/mock/meta/leads`);
+    if (!resp.ok) throw new Error(`META fetch failed: ${resp.status}`);
+    const data = await resp.json();
 
-    for (const l of leads) {
-      const normalized = normalizeMetaLead(l);
-      try {
-        await Lead.create(normalized);
-        imported++;
-      } catch (e) {
-        if (e.code === 11000) {
-          // duplicate → skip
-        } else {
-          throw e;
-        }
-      }
+    let count = 0;
+    for (const raw of data.leads || []) {
+      const name  = raw.field_data.find(f => f.name === "full_name")?.values?.[0] || null;
+      const email = raw.field_data.find(f => f.name === "email")?.values?.[0]?.toLowerCase() || null;
+      const phone = raw.field_data.find(f => f.name === "phone_number")?.values?.[0] || null;
+
+      await prisma.lead.upsert({
+        where: { source_email: { source: "META", email } },   // composite unique in Prisma
+        update: {
+          name,
+          phone,
+          externalId: raw.leadgen_id,
+          meta: {
+            ad_id: raw.ad_id,
+            campaign_id: raw.campaign_id,
+            form_id: raw.form_id,
+          },
+          updatedAt: new Date(),
+        },
+        create: {
+          source: "META",
+          email,
+          name,
+          phone,
+          externalId: raw.leadgen_id,
+          meta: {
+            ad_id: raw.ad_id,
+            campaign_id: raw.campaign_id,
+            form_id: raw.form_id,
+          },
+        },
+      });
+      count++;
     }
 
-    await SyncLog.create({
-      platform: "META",
-      fetchedCount: fetched,
-      importedCount: imported,
-      startedAt,
-      finishedAt: new Date(),
-      status: "SUCCESS"
+    await prisma.syncLog.create({
+      data: { source: "META", status: "SUCCESS", details: { imported: count } },
     });
 
-    return { ok: true, fetched, imported };
+    return { ok: true, imported: count };
   } catch (err) {
-    await SyncLog.create({
-      platform: "META",
-      fetchedCount: fetched,
-      importedCount: imported,
-      startedAt,
-      finishedAt: new Date(),
-      status: "ERROR",
-      notes: err.message
+    await prisma.syncLog.create({
+      data: { source: "META", status: "ERROR", details: { message: String(err) } },
     });
-    return { ok: false, error: err.message };
+    return { ok: false, error: String(err) };
   }
 }

@@ -1,19 +1,19 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { connect } from "./utils/db.js";
-import { Lead } from "./models/Lead.js";
-import { SyncLog } from "./models/SyncLog.js";
+import { PrismaClient } from "@prisma/client";
 import { syncMetaLeads } from "./services/syncMeta.js";
 import { syncGoogleLeads } from "./services/syncGoogle.js";
 
 const app = express();
+const prisma = new PrismaClient();
+
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(",") || "*" }));
 app.use(express.json());
 
 // -------- Health
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, time: new Date().toISOString() });
+  res.json({ ok: true, db: "postgres", time: new Date().toISOString() });
 });
 
 // -------- Leads (pagination + optional platform filter)
@@ -22,12 +22,18 @@ app.get("/api/leads", async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "20", 10)));
-    const platform = req.query.platform?.toString().toUpperCase();
-    const filter = platform ? { platform } : {};
+    const source = req.query.platform?.toString().toUpperCase();
+
+    const where = source ? { source } : {};
 
     const [items, total] = await Promise.all([
-      Lead.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
-      Lead.countDocuments(filter),
+      prisma.lead.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.lead.count({ where }),
     ]);
 
     res.json({ items, total, page, limit });
@@ -39,7 +45,10 @@ app.get("/api/leads", async (req, res) => {
 // -------- Logs (latest first)
 app.get("/api/logs", async (_req, res) => {
   try {
-    const logs = await SyncLog.find().sort({ createdAt: -1 }).limit(100);
+    const logs = await prisma.syncLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
     res.json(logs);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -76,7 +85,6 @@ app.get("/mock/meta/leads", (_req, res) => {
   ];
   res.json({ leads });
 });
-
 
 // -------- Mock Google (simulated external source)
 app.get("/mock/google/leads", (_req, res) => {
@@ -149,6 +157,4 @@ app.get("/", (_req, res) => {
 
 // -------- Start
 const PORT = process.env.PORT || 4000;
-connect().then(() => {
-  app.listen(PORT, () => console.log(`API running on :${PORT}`));
-});
+app.listen(PORT, () => console.log(`API running on :${PORT}`));

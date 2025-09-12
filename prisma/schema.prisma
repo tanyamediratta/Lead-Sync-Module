@@ -1,0 +1,40 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // make sure .env has this
+}
+
+model Lead {
+  id         String   @id @default(uuid())
+  externalId String?  @map("external_id")
+  source     Source
+  name       String?
+  email      String?
+  phone      String?
+  meta       Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @map("updated_at")
+
+  @@unique([source, email], name: "source_email")
+  @@map("leads")
+}
+
+model SyncLog {
+  id        String   @id @default(uuid())
+  source    String?
+  status    String?
+  details   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sync_logs")
+}
+
+enum Source {
+  META
+  GOOGLE
+}
