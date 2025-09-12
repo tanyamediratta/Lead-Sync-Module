@@ -14,30 +14,29 @@ export async function syncMetaLeads(baseUrl) {
       const email = raw.field_data.find(f => f.name === "email")?.values?.[0]?.toLowerCase() || null;
       const phone = raw.field_data.find(f => f.name === "phone_number")?.values?.[0] || null;
 
-      await prisma.lead.upsert({
-        where: { source_email: { source: "META", email } },
-        update: {
-          name, phone,
-          externalId: raw.leadgen_id,
-          meta: {
-            ad: raw.ad_id,
-            campaign: raw.campaign_id,   // unified key
-            form_id: raw.form_id,
-          },
-          updatedAt: new Date(),
+      if (!email) continue; // optional: skip rows with no email
+
+      const where = { source_email: { source: "META", email } };
+      const exists = await prisma.lead.findUnique({ where });
+
+      const common = {
+        name,
+        phone,
+        externalId: raw.leadgen_id,
+        meta: {
+          ad: raw.ad_id,
+          campaign: raw.campaign_id, // unified key for UI
+          form_id: raw.form_id,
         },
-        create: {
-          source: "META",
-          email, name, phone,
-          externalId: raw.leadgen_id,
-          meta: {
-            ad: raw.ad_id,
-            campaign: raw.campaign_id,
-            form_id: raw.form_id,
-          },
-        },
-      });
-      imported++;
+      };
+
+      if (exists) {
+        await prisma.lead.update({ where, data: { ...common, updatedAt: new Date() } });
+        // not counted as imported
+      } else {
+        await prisma.lead.create({ data: { source: "META", email, ...common } });
+        imported += 1; // count only brand new rows
+      }
     }
 
     await prisma.syncLog.create({

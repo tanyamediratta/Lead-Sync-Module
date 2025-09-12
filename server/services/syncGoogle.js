@@ -17,30 +17,29 @@ export async function syncGoogleLeads(baseUrl) {
       const email = (get("email") || "").toLowerCase() || null;
       const phone = get("phone");
 
-      await prisma.lead.upsert({
-        where: { source_email: { source: "GOOGLE", email } },
-        update: {
-          name, phone,
-          externalId: raw.resource_name,
-          meta: {
-            lead_form_id: raw.lead_form_id,
-            campaign: raw.campaign,   // unified key
-            ad: raw.ad,
-          },
-          updatedAt: new Date(),
+      if (!email) continue; // optional: skip rows with no email
+
+      const where = { source_email: { source: "GOOGLE", email } };
+      const exists = await prisma.lead.findUnique({ where });
+
+      const common = {
+        name,
+        phone,
+        externalId: raw.resource_name,
+        meta: {
+          lead_form_id: raw.lead_form_id,
+          campaign: raw.campaign, // unified key for UI
+          ad: raw.ad,
         },
-        create: {
-          source: "GOOGLE",
-          email, name, phone,
-          externalId: raw.resource_name,
-          meta: {
-            lead_form_id: raw.lead_form_id,
-            campaign: raw.campaign,
-            ad: raw.ad,
-          },
-        },
-      });
-      imported++;
+      };
+
+      if (exists) {
+        await prisma.lead.update({ where, data: { ...common, updatedAt: new Date() } });
+        // not counted as imported
+      } else {
+        await prisma.lead.create({ data: { source: "GOOGLE", email, ...common } });
+        imported += 1; // count only brand new rows
+      }
     }
 
     await prisma.syncLog.create({
