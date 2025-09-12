@@ -20,13 +20,13 @@ app.get("/api/health", (_req, res) => {
 // GET /api/leads?page=1&limit=20&platform=META
 app.get("/api/leads", async (req, res) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page || "1", 10));
+    const page  = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "20", 10)));
-    const source = req.query.platform?.toString().toUpperCase();
+    const platform = req.query.platform?.toString().toUpperCase();
 
-    const where = source ? { source } : {};
+    const where = platform ? { source: platform } : {};
 
-    const [items, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       prisma.lead.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -36,24 +36,47 @@ app.get("/api/leads", async (req, res) => {
       prisma.lead.count({ where }),
     ]);
 
+    // 🔁 Normalize to the frontend’s expected shape
+    const items = rows.map((r) => ({
+      name: r.name ?? "-",
+      phone: r.phone ?? "-",
+      email: r.email ?? "-",
+      platform: r.source, // UI expects `platform`
+      // prefer a single `campaign` key across META/GOOGLE
+      campaign:
+        (r.meta?.campaign) ||
+        (r.meta?.campaign_id) ||
+        "-",
+      timestamp: r.createdAt, // UI shows this as “Timestamp”
+    }));
+
     res.json({ items, total, page, limit });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
+
 // -------- Logs (latest first)
 app.get("/api/logs", async (_req, res) => {
   try {
-    const logs = await prisma.syncLog.findMany({
+    const rows = await prisma.syncLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
     });
+    const logs = rows.map((r) => ({
+      source: r.source ?? "-",
+      status: r.status ?? "-",
+      fetched: r.details?.fetched ?? 0,
+      imported: r.details?.imported ?? 0,
+      timestamp: r.createdAt,
+    }));
     res.json(logs);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
 
 // -------- Mock Meta (simulated external source)
 app.get("/mock/meta/leads", (_req, res) => {

@@ -11,7 +11,9 @@ export async function syncGoogleLeads(baseUrl) {
     if (!resp.ok) throw new Error(`GOOGLE fetch failed: ${resp.status}`);
     const data = await resp.json();
 
-    let count = 0;
+    let imported = 0;
+    const fetched = (data.leads || []).length;
+
     for (const raw of data.leads || []) {
       const get = (label) =>
         raw.custom_lead_form_fields.find(f => f.question_text.toLowerCase().includes(label))?.user_input || null;
@@ -26,9 +28,10 @@ export async function syncGoogleLeads(baseUrl) {
           name,
           phone,
           externalId: raw.resource_name,
+          // unify to the same keys used above
           meta: {
             lead_form_id: raw.lead_form_id,
-            campaign: raw.campaign,
+            campaign: raw.campaign,   // << unified key
             ad: raw.ad,
           },
           updatedAt: new Date(),
@@ -46,14 +49,14 @@ export async function syncGoogleLeads(baseUrl) {
           },
         },
       });
-      count++;
+      imported++;
     }
 
     await prisma.syncLog.create({
-      data: { source: "GOOGLE", status: "SUCCESS", details: { imported: count } },
+      data: { source: "GOOGLE", status: "SUCCESS", details: { fetched, imported } },
     });
 
-    return { ok: true, imported: count };
+    return { ok: true, fetched, imported };
   } catch (err) {
     await prisma.syncLog.create({
       data: { source: "GOOGLE", status: "ERROR", details: { message: String(err) } },

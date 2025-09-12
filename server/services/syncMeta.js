@@ -11,21 +11,24 @@ export async function syncMetaLeads(baseUrl) {
     if (!resp.ok) throw new Error(`META fetch failed: ${resp.status}`);
     const data = await resp.json();
 
-    let count = 0;
+    let imported = 0;
+    const fetched = (data.leads || []).length;
+
     for (const raw of data.leads || []) {
       const name  = raw.field_data.find(f => f.name === "full_name")?.values?.[0] || null;
       const email = raw.field_data.find(f => f.name === "email")?.values?.[0]?.toLowerCase() || null;
       const phone = raw.field_data.find(f => f.name === "phone_number")?.values?.[0] || null;
 
       await prisma.lead.upsert({
-        where: { source_email: { source: "META", email } },   // composite unique in Prisma
+        where: { source_email: { source: "META", email } },
         update: {
           name,
           phone,
           externalId: raw.leadgen_id,
+          // use unified meta keys the UI expects
           meta: {
-            ad_id: raw.ad_id,
-            campaign_id: raw.campaign_id,
+            ad: raw.ad_id,
+            campaign: raw.campaign_id, // << unify to `campaign`
             form_id: raw.form_id,
           },
           updatedAt: new Date(),
@@ -37,20 +40,20 @@ export async function syncMetaLeads(baseUrl) {
           phone,
           externalId: raw.leadgen_id,
           meta: {
-            ad_id: raw.ad_id,
-            campaign_id: raw.campaign_id,
+            ad: raw.ad_id,
+            campaign: raw.campaign_id,
             form_id: raw.form_id,
           },
         },
       });
-      count++;
+      imported++;
     }
 
     await prisma.syncLog.create({
-      data: { source: "META", status: "SUCCESS", details: { imported: count } },
+      data: { source: "META", status: "SUCCESS", details: { fetched, imported } },
     });
 
-    return { ok: true, imported: count };
+    return { ok: true, fetched, imported };
   } catch (err) {
     await prisma.syncLog.create({
       data: { source: "META", status: "ERROR", details: { message: String(err) } },
