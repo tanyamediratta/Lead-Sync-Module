@@ -66,7 +66,7 @@ The project simulates a real-world scenario where companies run ads on multiple 
 ## 🔗 Live Demo  
 
 - **Frontend (Dashboard):** [lead-sync-module.vercel.app](https://lead-sync-module.vercel.app)  
-- **Backend (API):** [lead-sync-module.onrender.com](https://lead-sync-module.onrender.com)  
+- **Backend (API):** ([https://lead-sync-module.onrender.com](https://lead-sync-module-1.onrender.com))  
 
 ### Try it out:  
 1. Open the **dashboard** (frontend link).  
