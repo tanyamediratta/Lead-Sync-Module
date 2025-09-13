@@ -71,7 +71,7 @@ Auto-Sync toggle (every 5 minutes)
 
 Platform filter (All, META, GOOGLE)
 
-UX Enhancements
+User Experience Enhancements
 
 Toast notifications on success/failure
 
@@ -81,9 +81,9 @@ Gradient header + styled buttons
 
 🔗 Live Demo
 
-Frontend (Dashboard): https://lead-sync-module.vercel.app/
+Frontend (Dashboard): https://lead-sync-module.vercel.app
 
-Backend (API): [https://lead-sync-module.onrender.com](https://lead-sync-module-1.onrender.com)
+Backend (API): [https://lead-sync-module.onrender.com](https://lead-sync-module-1.onrender.com/)
 
 Try it out:
 
