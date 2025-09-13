@@ -76,15 +76,6 @@ The project simulates a real-world scenario where companies run ads on multiple 
 
 ---
 
-## 📸 Screenshots  
-
-### Dashboard (Leads Table)  
-![Dashboard](./screenshots/dashboard.png)  
-
-### Sync Logs with Auto-Sync  
-![Logs](./screenshots/logs.png)  
-
----
 
 ## 🛠 Local Development  
 
