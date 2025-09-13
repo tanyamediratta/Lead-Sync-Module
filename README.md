@@ -1,96 +1,99 @@
-Lead Sync Module
+# 📌 Lead Sync Module  
 
-This project is a full-stack lead management module designed to demonstrate how marketing leads from multiple ad platforms can be integrated into a single CRM system.
+This project is a full-stack lead management module designed to demonstrate how marketing leads from multiple ad platforms can be integrated into a single CRM system.  
 
-It automatically fetches leads from mock Meta and Google Ads APIs, ensures deduplication at the database level, and provides a clean React dashboard to monitor both leads and sync logs.
+It automatically fetches leads from mock **Meta** and **Google Ads** APIs, ensures **deduplication at the database level**, and provides a clean **React dashboard** to monitor both leads and sync logs.  
 
-The project simulates a real-world scenario where companies run ads on multiple platforms and need to consolidate data into one reliable system.
+The project simulates a real-world scenario where companies run ads on multiple platforms and need to consolidate data into one reliable system.  
 
-🚀 Tech Stack
-Backend (API & Database)
+---
 
-Node.js + Express → REST APIs
+## 🚀 Tech Stack  
 
-PostgreSQL (Render) → cloud database
+### 🔙 Backend (API & Database)  
+- Node.js with Express for REST APIs  
+- PostgreSQL (via Render cloud database)  
+- Prisma ORM for schema validation and migrations  
+- Axios for fetching mock data  
+- Nodemon for local dev hot-reload  
 
-Prisma ORM → schema, queries, and migrations
+### 🎨 Frontend (Dashboard)  
+- React (Vite) for a fast development/build setup  
+- Tailwind CSS for modern UI styling  
+- Axios for API calls  
+- Deployed via Vercel  
 
-Axios → fetching mock data
+### ☁️ Deployment  
+- **Backend:** Render (always-live REST API)  
+- **Frontend:** Vercel (public React dashboard)  
 
-Nodemon → hot reload during dev
+---
 
-Frontend (Dashboard)
+## ✨ Features  
 
-React (Vite) → fast dev/build setup
+### 🔗 Backend APIs  
+- `POST /api/sync/all` → Fetch and import leads from Meta and Google simultaneously  
+- `GET /api/leads` → Paginated, filterable list of leads (filter by `META` / `GOOGLE`)  
+- `GET /api/logs` → Last 50 sync logs with fetched/imported counts  
 
-Tailwind CSS → modern UI styling
+#### Deduplication logic  
+- Unique by `(platform + providerLeadId)`  
+- Unique by `email` (if provided)  
+- Unique by `phone` (if provided)  
 
-Axios → API calls
+---
 
-Vercel → deployment
+### 📊 Frontend Dashboard – Leads Table  
+- Displays **name, email, phone, platform, campaign, timestamp**  
+- Hover effects, colored platform badges, responsive design  
 
-Deployment
+### 📈 Sync Logs  
+- Shows **fetchedCount vs importedCount**  
+- Displays **timestamp** for each sync  
 
-Backend: Render (always-live REST API)
+### 🛠 Controls  
+- **Sync Now** button (manual trigger)  
+- **Auto-Sync** toggle (every 5 minutes; preference stored in browser)  
+- **Platform filter** (All, META, GOOGLE)  
 
-Frontend: Vercel (public React dashboard)
+### 🎨 User Experience Enhancements  
+- Toast notifications on success/failure  
+- Loading indicators  
+- Professional gradient header + styled buttons  
 
-✨ Features
-🔗 Backend APIs
+---
 
-POST /api/sync/all → Fetch and import leads from Meta and Google simultaneously.
+## 🔗 Live Demo  
 
-GET /api/leads → Returns paginated, filterable list of leads (filter by META / GOOGLE).
+- **Frontend (Dashboard):** [lead-sync-module.vercel.app](https://lead-sync-module.vercel.app)  
+- **Backend (API):** [lead-sync-module.onrender.com](https://lead-sync-module.onrender.com)  
 
-GET /api/logs → Returns recent sync logs, showing how many leads were fetched and how many were actually imported.
+### Try it out:  
+1. Open the **dashboard** (frontend link).  
+2. Click **Sync Now** → watch new mock leads appear in the table.  
+3. Enable **Auto-Sync** → system auto-fetches every 5 minutes.  
+4. Check the **Logs section** → confirm how many leads were fetched vs imported.  
 
-Deduplication logic
+---
 
-Enforced at the database level with a unique constraint on (source, email)
+## 📸 Screenshots  
 
-Same lead synced again will be fetched but not imported
+### Dashboard (Leads Table)  
+![Dashboard](./screenshots/dashboard.png)  
 
-📊 Frontend Dashboard
-Leads Table
+### Sync Logs with Auto-Sync  
+![Logs](./screenshots/logs.png)  
 
-Displays name, email, phone, platform, campaign, timestamp
+---
 
-Hover effects, platform badges, responsive design
+## 🛠 Local Development  
 
-Sync Logs
+### Prerequisites  
+- Node.js (v20 LTS recommended; pinned via `.nvmrc`)  
+- PostgreSQL (via Render, or local)  
+- Git + npm  
 
-Shows fetchedCount vs importedCount
-
-Timestamp for each sync
-
-Controls
-
-Sync Now button (manual trigger)
-
-Auto-Sync toggle (every 5 minutes)
-
-Platform filter (All, META, GOOGLE)
-
-User Experience Enhancements
-
-Toast notifications on success/failure
-
-Loading indicators
-
-Gradient header + styled buttons
-
-🔗 Live Demo
-
-Frontend (Dashboard): https://lead-sync-module.vercel.app
-
-Backend (API): [https://lead-sync-module.onrender.com](https://lead-sync-module-1.onrender.com/)
-
-Try it out:
-
-Open the dashboard (frontend link).
-
-Click Sync Now → watch new mock leads appear in the table.
-
-Enable Auto-Sync → system auto-fetches every 5 minutes.
-
-Check the Logs → confirm how many were fetched vs imported.
+### 1. Clone Repo  
+```bash
+git clone https://github.com/tanyamediratta/Lead-Sync-Module.git
+cd crm-lead-sync
